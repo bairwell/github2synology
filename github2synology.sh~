@@ -8,20 +8,17 @@ OAUTH_TOKEN="[PUT YOUR TOKEN HERE BETWEEN THE QUOTES]"
 # where should the files be saved
 BACKUP_PATH="/volume1/serverBackups/github/backup"
 
+
 # you shouldn't need to change anything below here - unless you have over 100 repos: in which case, see the bottom.
-COUNTER=100
-TOTALCOUNTER=0
-PAGE=1
-GIT="c//volume1/@appstore/git/bin/git"
+
+API_URL="https://api.github.com/user/repos?type=all&per_page=100"
+GIT="/volume1/@appstore/git/bin/git"
+
 fetch_fromUrl() {
-	COUNTER=0
-    API_URL="https://api.github.com/user/repos?type=all&per_page=100&page=${PAGE}"
     echo "Fetching from ${API_URL}"
     REPOS=`curl -H "Authorization: token ${OAUTH_TOKEN}" -s "${API_URL}" | jq -r 'values[] | "\(.full_name),\(.private),\(.git_url),\(.has_wiki)"'`
     for REPO in $REPOS
     do
-        let COUNTER++
-        let TOTALCOUNTER++
         REPONAME=`echo ${REPO} | cut -d ',' -f1`
         PRIVATEFLAG=`echo ${REPO} | cut -d ',' -f2`
         ORIGINALGITURL=`echo ${REPO} | cut -d ',' -f3`
@@ -29,6 +26,8 @@ fetch_fromUrl() {
         GITURL="${ORIGINALGITURL/git:\/\/github.com\//git@github.com:}"
         mkdir "${BACKUP_PATH}/${REPONAME}" -p
         REPOPATH="${BACKUP_PATH}/${REPONAME}/code"
+
+
         if [ -d "$REPOPATH" ]; then
             echo "PULLING Repo URL: ${REPONAME} from url ${GITURL} to ${REPOPATH}"
             cd ${REPOPATH}
@@ -54,9 +53,9 @@ fetch_fromUrl() {
             fi
         fi
     done
+
 }
-until [ $COUNTER -lt 100 ]; do
-    fetch_fromUrl
-    let PAGE++
-done
-echo $((TOTALCOUNTER)) repositories updated
+fetch_fromUrl
+# If you need additional urls adding, put them here.
+#API_URL="https://api.github.com/user/repos?type=all&per_page=100&page=2"
+#fetch_fromUrl
